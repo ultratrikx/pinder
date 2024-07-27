@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinder</title>
+    <script src="/static/axios.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        form { margin-bottom: 20px; }
+        input, textarea { width: 100%; margin-bottom: 10px; }
+        #matches { display: none; }
+        .park { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
+        .buttons { display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <h1>Pinder: Find ur dream park. ❤️  </h1>
+    <form id="registerForm">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="text" id="hobbies" placeholder="Hobbies" required>
+        <input type="text" id="interests" placeholder="Interests" required>
+        <input type="text" id="favorite_activity" placeholder="Favorite Activity" required>
+        <textarea id="bio" placeholder="Bio" required></textarea>
+        <button type="submit">Register</button>
+    </form>
+
+    <div id="matches">
+        <h2>Your Matches</h2>
+        <div id="currentMatch"></div>
+        <div class="buttons">
+            <button onclick="swipe('left')">Swipe Left</button>
+            <button onclick="swipe('right')">Swipe Right</button>
+        </div>
+    </div>
+
+    <script>
+        let currentMatches = [];
+        let currentMatchIndex = 0;
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userData = {
+                name: document.getElementById('name').value,
+                hobbies: document.getElementById('hobbies').value,
+                interests: document.getElementById('interests').value,
+                favorite_activity: document.getElementById('favorite_activity').value,
+                bio: document.getElementById('bio').value
+            };
+            await axios.post('/register', userData);
+            getMatches(userData.name);
+        });
+
+        async function getMatches(username) {
+            const response = await axios.get(`/match/${username}`);
+            currentMatches = response.data;
+            document.getElementById('matches').style.display = 'block';
+            showNextMatch();
+        }
+
+        function showNextMatch() {
+            if (currentMatchIndex < currentMatches.length) {
+                const match = currentMatches[currentMatchIndex];
+                document.getElementById('currentMatch').innerHTML = `
+                    <h3>${match.name}</h3>
+                    <p>Location: ${match.location}</p>
+                    <p>${match.description}</p>
+                    <p>Similarity: ${(match.similarity * 100).toFixed(2)}%</p>
+                `;
+            } else {
+                document.getElementById('currentMatch').innerHTML = '<p>No more matches!</p>';
+            }
+        }
+
+        async function swipe(direction) {
+            if (currentMatchIndex < currentMatches.length) {
+                const match = currentMatches[currentMatchIndex];
+                await axios.post('/swipe', {
+                    user: document.getElementById('name').value,
+                    park: match.name,
+                    direction: direction
+                });
+                currentMatchIndex++;
+                showNextMatch();
+            }
+        }
+    </script>
+</body>
+</html>
